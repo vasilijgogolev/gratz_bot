@@ -33,7 +33,7 @@ def items_to_html(items) -> str:
         name = item.get("name", "[ДАННЫЕ СКРЫТЫ]")
         amount = item.get("amount", 0)
         _list.append(f"{place}. <b>{name}</b> - {amount} {declensed_gratz(amount)}")
-    return "<br/>".join(_list)
+    return "\n".join(_list)
 
 
 def hello(event, context):
@@ -89,10 +89,10 @@ def hello(event, context):
                 user_id = data["message"]["from"]["id"]
                 total_value = 0
                 try:
-                    response = table.get_item(
+                    r = table.get_item(
                         Key={"user_id": str(user_id)}
                     )
-                    total_value = int(response["Item"]["amount"])
+                    total_value = int(r["Item"]["amount"])
                 except Exception as _e:
                     print(_e)
 
