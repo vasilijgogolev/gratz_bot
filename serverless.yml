@@ -1,0 +1,21 @@
+
+service: karabula-bot
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.8
+  stage: dev
+  region: us-east-1
+  environment: 
+    TELEGRAM_TOKEN: ${env:TELEGRAM_TOKEN}
+
+functions:
+  post:
+    handler: handler.hello
+    events:
+      - http:
+          path: karabula_bot
+          method: post
+          cors: true
