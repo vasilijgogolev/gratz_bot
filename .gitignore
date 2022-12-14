@@ -204,3 +204,4 @@ dist
 # added manually
 .idea/
 .venv/
+__pycache__/
