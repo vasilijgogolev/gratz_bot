@@ -11,6 +11,7 @@ http = urllib3.PoolManager()
 TOKEN = os.environ['TELEGRAM_TOKEN']
 BASE_URL = "https://api.telegram.org/bot{}".format(TOKEN)
 
+
 def numeral_noun_declension(number, nominative_singular, genetive_singular, nominative_plural):
 	dig_last = number % 10
 	return (
@@ -18,6 +19,22 @@ def numeral_noun_declension(number, nominative_singular, genetive_singular, nomi
 		(1 in (number, dig_last)) and nominative_singular or
 		({number, dig_last} & {2, 3, 4}) and genetive_singular or nominative_plural
 	)
+
+
+def declensed_gratz(n: int) -> str:
+    return numeral_noun_declension(n, 'грац', 'граца', 'грацей')
+
+
+def items_to_html(items) -> str:
+    _list = []
+    item: dict
+    for index, item in enumerate(items):
+        place = index + 1
+        name = item.get("name", "[ДАННЫЕ СКРЫТЫ]")
+        amount = item.get("amount", 0)
+        _list.append(f"{place}. <b>{name}</b> - {amount} {declensed_gratz(amount)}")
+    return "<br/>".join(_list)
+
 
 def hello(event, context):
 	try:
@@ -44,7 +61,7 @@ def hello(event, context):
 				try:
 					_key = str(receiving_user_id)
 					r = table.get_item(
-						Key = {"user_id": _key}
+						Key={"user_id": _key}
 					)
 					total_value = int(r["Item"]["amount"])
 				except Exception as _e:
@@ -54,15 +71,16 @@ def hello(event, context):
 
 				try:
 					r = table.put_item(
-						Item = {
+						Item={
 							"user_id": str(receiving_user_id),
-							"amount": total_value
+							"amount": total_value,
+							"name": first_name
 						}
 					)
 				except Exception as _e_:
 					print(_e_)
 
-				response = f"<b>{first_name}</b>, ты собрал {total_value} {numeral_noun_declension(total_value, 'грац', 'граца', 'грацей')}!"
+				response = f"<b>{first_name}</b>, ты собрал {total_value} {declensed_gratz(total_value)}!"
 				valid_message = True
 		else:
 			print("not a reply, trying to parse as text")
@@ -72,7 +90,7 @@ def hello(event, context):
 				total_value = 0
 				try:
 					response = table.get_item(
-						Key = {"user_id": str(user_id)}
+						Key={"user_id": str(user_id)}
 					)
 					total_value = int(response["Item"]["amount"])
 				except Exception as _e:
@@ -80,8 +98,18 @@ def hello(event, context):
 
 				#total_value = chat_data.get(str(user_id), 0)
 				sending_user_name = data["message"]["from"]["first_name"]
-				response = f"<b>{sending_user_name}</b>, сейчас у тебя {total_value} {numeral_noun_declension(total_value, 'грац', 'граца', 'грацей')}!"
-				valid_message = True	
+				response = f"<b>{sending_user_name}</b>, сейчас у тебя {total_value} {declensed_gratz(total_value)}!"
+				valid_message = True
+			if "gratztop" in message:
+				print("sending gratztop")
+				try:
+					# scan across the table with 1 MB limit
+					items = table.scan()["Items"]
+					sorted_items = sorted(items, key=lambda item: int(item["amount"]), reverse=True)
+					response = items_to_html(sorted_items)
+					valid_message = True
+				except Exception as _e:
+					print(_e)
 		
 		if not valid_message:
 			print("not a valid message, returning")
