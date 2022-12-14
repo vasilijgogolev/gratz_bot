@@ -11,6 +11,17 @@ http = urllib3.PoolManager()
 TOKEN = os.environ['TELEGRAM_TOKEN']
 BASE_URL = "https://api.telegram.org/bot{}".format(TOKEN)
 
+funny_outputs = {
+	1: 'Используй команду gratzstats чтобы узнать кол-во грацей',
+	69: 'Very nice.',
+	100: 'Неплоха'
+}
+
+def get_funny(v :int) -> str:
+	exist = funny_outputs.get(v)
+	if not exist:
+		return ""
+	return exist
 
 def numeral_noun_declension(number, nominative_singular, genetive_singular, nominative_plural):
     dig_last = number % 10
@@ -39,10 +50,10 @@ def items_to_html(items) -> str:
 def hello(event, context):
     try:
         data = json.loads(event["body"])
-        print(data)
         sending_user_id = data["message"]["from"]["id"]
         chat_id = data["message"]["chat"]["id"]
         response = ""
+        funny = ""
         valid_message = False
         message = str(data["message"]["text"])
 
@@ -81,6 +92,7 @@ def hello(event, context):
                     print(_e_)
 
                 response = f"<b>{first_name}</b>, ты собрал {total_value} {declensed_gratz(total_value)}!"
+                funny = get_funny(total_value)
                 valid_message = True
         else:
             print("not a reply, trying to parse as text")
@@ -130,9 +142,16 @@ def hello(event, context):
 
         http_status = r.status
         print(http_status)
-        if http_status != 200:
-            print(r.text)
 
+        if (funny):
+            funny_data = {"text": funny, "chat_id": int(chat_id), "reply_to_message_id": int(message_id), "parse_mode": "HTML"}
+            _funny = json.dumps(funny_data).encode('utf-8')
+            funny_request = http.request('POST',
+                url,
+                body=_funny,
+                headers={'Content-Type': 'application/json'})
+            funny_status = funny_request.status
+            print(funny_status)
     except Exception as e:
         print(e)
 
