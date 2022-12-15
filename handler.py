@@ -10,11 +10,13 @@ http = urllib3.PoolManager()
 
 TOKEN = os.environ['TELEGRAM_TOKEN']
 BASE_URL = "https://api.telegram.org/bot{}".format(TOKEN)
+_CHAT_ID = int(os.environ['CHAT_ID'])
 
 funny_outputs = {
 	1: 'Используй команду gratzstats чтобы узнать кол-во грацей',
+	30: 'Неплоха',
 	69: 'Very nice.',
-	100: 'Неплоха'
+	99: 'У нас тут мистер 99.999999%'
 }
 
 def get_funny(v :int) -> str:
@@ -50,8 +52,13 @@ def items_to_html(items) -> str:
 def hello(event, context):
     try:
         data = json.loads(event["body"])
+        print(data)
         sending_user_id = data["message"]["from"]["id"]
         chat_id = data["message"]["chat"]["id"]
+
+        if (int(chat_id) != _CHAT_ID):
+            return {"statusCode":400, "message":"allowed only in certain chat id"}
+
         response = ""
         funny = ""
         valid_message = False
@@ -128,8 +135,7 @@ def hello(event, context):
             return {"statusCode": 200}
 
         url = BASE_URL + "/sendMessage"
-        message_id = int(data["message"]["message_id"])
-        _data = {"text": str(response), "chat_id": int(chat_id), "reply_to_message_id": int(message_id), "parse_mode": "HTML"}
+        _data = {"text": str(response), "chat_id": int(chat_id), "parse_mode": "HTML"}
         encoded_data = json.dumps(_data).encode('utf-8')
 
         print(f"sending message {response}")
@@ -144,7 +150,7 @@ def hello(event, context):
         print(http_status)
 
         if (funny):
-            funny_data = {"text": funny, "chat_id": int(chat_id), "reply_to_message_id": int(message_id), "parse_mode": "HTML"}
+            funny_data = {"text": funny, "chat_id": int(chat_id), "parse_mode": "HTML"}
             _funny = json.dumps(funny_data).encode('utf-8')
             funny_request = http.request('POST',
                 url,
